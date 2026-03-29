@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fedex Tracking - Global Logistics</title>
+    <title>Fedex Tracking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -11,248 +11,257 @@
         .fedex-orange { color: #FF6200; }
         .bg-fedex-purple { background-color: #4D148C; }
         .hidden { display: none; }
-        #loading-overlay { 
+        #loader { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.9); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000;
+            background: white; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-50 font-sans text-gray-900">
 
-    <nav class="bg-white shadow-md p-4 flex justify-between items-center">
-        <div id="logo-btn" class="cursor-pointer select-none">
+    <nav class="bg-white shadow p-4 flex justify-between items-center sticky top-0 z-50">
+        <div id="admin-trigger" class="cursor-pointer">
             <span class="text-3xl font-black fedex-purple tracking-tighter">Fed</span><span class="text-3xl font-black fedex-orange tracking-tighter">ex</span>
         </div>
-        <div class="text-xs text-gray-500">Express Delivery</div>
+        <div class="text-xs font-bold text-gray-400">GLOBAL LOGISTICS</div>
     </nav>
 
-    <div id="loading-overlay" class="hidden">
+    <div id="loader" class="hidden">
         <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-fedex-purple"></div>
-        <p class="mt-4 font-bold fedex-purple">Searching Tracking Database...</p>
+        <p class="mt-4 font-bold fedex-purple italic">Tracking package...</p>
     </div>
 
-    <main id="client-view" class="max-w-md mx-auto mt-10 p-6">
-        <div class="bg-white p-6 rounded-lg shadow-lg">
-            <h1 class="text-xl font-bold mb-4 text-gray-800">Track your package</h1>
-            <input type="text" id="track-input" placeholder="Enter Tracking ID" class="w-full border p-3 rounded mb-4 focus:outline-none focus:border-fedex-purple">
-            <button onclick="trackPackage()" class="w-full bg-fedex-purple text-white font-bold py-3 rounded hover:opacity-90 transition">TRACK</button>
+    <section id="client-page" class="max-w-md mx-auto p-6">
+        <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-100 mt-4">
+            <h2 class="text-xl font-bold mb-4">Track Your Shipment</h2>
+            <input type="text" id="track-id" placeholder="Enter Tracking Code" class="w-full border-2 p-3 rounded-lg mb-4 focus:border-fedex-purple outline-none">
+            <button onclick="startTracking()" class="w-full bg-fedex-purple text-white font-bold py-3 rounded-lg shadow-md active:scale-95 transition">TRACK</button>
         </div>
 
-        <div id="results-display" class="mt-6 hidden">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-fedex-orange">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="text-sm text-gray-500">Status</p>
-                        <h2 id="res-status" class="text-2xl font-black fedex-purple italic uppercase"></h2>
+        <div id="shipment-result" class="mt-6 hidden">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border-t-8 border-fedex-orange">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="res-status" class="text-2xl font-black italic uppercase fedex-purple"></h3>
+                        <div id="invoice-btn-area" class="hidden">
+                             <button onclick="downloadInvoice()" class="bg-blue-600 text-white text-xs px-3 py-2 rounded-full font-bold">Download Invoice</button>
+                        </div>
                     </div>
-                    <div id="invoice-box" class="hidden">
-                        <button onclick="downloadInvoice()" class="bg-green-600 text-white text-xs px-3 py-2 rounded">Download Invoice</button>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 text-sm border-t pt-4">
-                    <div><p class="text-gray-500">Recipient</p><p id="res-name" class="font-bold"></p></div>
-                    <div><p class="text-gray-500">Tracking ID</p><p id="res-id" class="font-bold"></p></div>
-                    <div><p class="text-gray-500">From</p><p id="res-from"></p></div>
-                    <div><p class="text-gray-500">To</p><p id="res-to"></p></div>
-                </div>
 
-                <div class="mt-4 p-3 bg-gray-50 rounded">
-                    <p class="text-xs text-gray-500 uppercase">Package Photo</p>
-                    <img id="res-img" src="" class="mt-2 w-full rounded shadow-sm hidden">
+                    <div id="package-img-container" class="mb-4 hidden">
+                        <img id="res-image" src="" class="w-full rounded-lg shadow-sm border">
+                    </div>
+
+                    <div class="space-y-3 text-sm border-t pt-4">
+                        <div class="flex justify-between"><span class="text-gray-500">Receiver:</span><span id="res-name" class="font-bold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">From:</span><span id="res-from" class="font-bold text-right"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">To:</span><span id="res-to" class="font-bold text-right"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Departure:</span><span id="res-takeoff" class="text-blue-600 font-bold"></span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Expected Arrival:</span><span id="res-reach" class="text-green-600 font-bold"></span></div>
+                        <div id="fee-display" class="mt-4 p-3 bg-red-50 rounded-lg hidden">
+                            <p class="text-red-600 font-bold text-center">Amount Due: $<span id="res-fee"></span></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
+    </section>
 
-    <div id="admin-view" class="hidden max-w-2xl mx-auto mt-10 p-6 bg-white shadow-2xl rounded-xl">
-        <h2 class="text-2xl font-bold border-b pb-2 mb-4">Admin Management</h2>
-        <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <input type="text" id="adm-name" placeholder="Client Name" class="border p-2 rounded">
-                <input type="text" id="adm-id" placeholder="Tracking Code" class="border p-2 rounded">
-                <input type="text" id="adm-from" placeholder="Origin City" class="border p-2 rounded">
-                <input type="text" id="adm-to" placeholder="Destination" class="border p-2 rounded">
+    <section id="admin-page" class="hidden max-w-lg mx-auto p-6 bg-white min-h-screen">
+        <h1 class="text-2xl font-bold border-b-2 border-fedex-orange pb-2 mb-6">Admin Panel</h1>
+        
+        <div class="grid grid-cols-1 gap-4">
+            <input type="text" id="adm-id" placeholder="Create Tracking Code" class="border p-3 rounded bg-gray-50">
+            <input type="text" id="adm-name" placeholder="Client Name" class="border p-3 rounded">
+            <input type="text" id="adm-from" placeholder="Original City (From)" class="border p-3 rounded">
+            <input type="text" id="adm-to" placeholder="Destination City (To)" class="border p-3 rounded">
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="adm-takeoff" placeholder="Takeoff Time" class="border p-3 rounded">
+                <input type="text" id="adm-reach" placeholder="Reach Time" class="border p-3 rounded">
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <input type="text" id="adm-depart" placeholder="Departure Time" class="border p-2 rounded">
-                <input type="text" id="adm-arrive" placeholder="Arrival Time" class="border p-2 rounded">
-            </div>
-            <select id="adm-status" class="w-full border p-2 rounded bg-gray-50">
+            
+            <label class="font-bold text-sm text-gray-600">Shipment Status:</label>
+            <select id="adm-status" class="border p-3 rounded bg-white">
                 <option value="Loading">Loading</option>
                 <option value="In transit (moving)">In transit (moving)</option>
                 <option value="Hold">Hold</option>
                 <option value="Held at customs">Held at customs (fee required)</option>
                 <option value="Arrived">Arrived (Clearance fee required)</option>
             </select>
-            <input type="number" id="adm-fee" placeholder="Fee Amount ($)" class="w-full border p-2 rounded">
+
+            <input type="number" id="adm-fee" placeholder="Fee Amount (e.g. 500)" class="border p-3 rounded">
             
-            <div class="border-2 border-dashed p-4 text-center">
-                <p class="text-sm mb-2 text-gray-500">Upload Package Image</p>
-                <input type="file" id="adm-file" accept="image/*" class="text-xs">
+            <div class="border-2 border-dotted p-4 rounded text-center">
+                <p class="text-xs mb-2">Upload Package Picture</p>
+                <input type="file" id="adm-pic" accept="image/*" class="text-xs">
             </div>
 
-            <button onclick="saveToCloud()" class="w-full bg-orange-600 text-white font-bold py-4 rounded shadow-lg hover:bg-orange-700">SAVE TO CLOUD</button>
+            <button onclick="pushUpdate()" class="bg-orange-600 text-white font-bold py-4 rounded-xl shadow-lg mt-4">SAVE TO CLOUD</button>
+            <button onclick="location.reload()" class="text-gray-400 text-sm mt-4">Exit Admin</button>
         </div>
-    </div>
+    </section>
 
     <script>
-        const GITHUB_TOKEN = "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";
-        const REPO_NAME = "fedex-trackshippingcode";
-        const USERNAME = "fedex-trackshippingcode";
-        const FILE_PATH = "data.json";
+        const TOKEN = "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";
+        const REPO = "fedex-trackshippingcode";
+        const OWNER = "fedex-trackshippingcode";
+        const DATA_FILE = "data.json";
 
-        let packageDatabase = {};
+        let db = {};
+        let currentSha = "";
 
-        // 1. Initialize & Fetch Data from GitHub
-        async function loadDatabase() {
-            try {
-                const response = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                    headers: { Authorization: `token ${GITHUB_TOKEN}` }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    packageDatabase = JSON.parse(atob(data.content));
-                    window.fileSha = data.sha;
+        // Hidden Login
+        let clicks = 0;
+        document.getElementById('admin-trigger').onclick = () => {
+            clicks++;
+            if(clicks === 3) {
+                if(prompt("Admin Password?") === "0000" && prompt("Admin Token?") === TOKEN) {
+                    document.getElementById('client-page').classList.add('hidden');
+                    document.getElementById('admin-page').classList.remove('hidden');
                 }
-            } catch (e) { console.log("Database initialized."); }
-        }
-
-        // 2. Admin Login Logic
-        let clickCount = 0;
-        document.getElementById('logo-btn').onclick = () => {
-            clickCount++;
-            if (clickCount >= 3) {
-                let pass = prompt("Enter Admin Password:");
-                let token = prompt("Enter Token:");
-                if (pass === "0000" && token === GITHUB_TOKEN) {
-                    document.getElementById('client-view').classList.add('hidden');
-                    document.getElementById('admin-view').classList.remove('hidden');
-                }
-                clickCount = 0;
+                clicks = 0;
             }
         };
 
-        // 3. Save Data to GitHub (The "Cloud")
-        async function saveToCloud() {
-            const fileInput = document.getElementById('adm-file');
-            let imgBase64 = "";
+        async function fetchDB() {
+            try {
+                const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_FILE}`, {
+                    headers: { Authorization: `token ${TOKEN}` }
+                });
+                if(r.ok) {
+                    const j = await r.json();
+                    db = JSON.parse(atob(j.content));
+                    currentSha = j.sha;
+                }
+            } catch(e) {}
+        }
 
-            if (fileInput.files[0]) {
+        async function pushUpdate() {
+            const file = document.getElementById('adm-pic').files[0];
+            let base64 = "";
+
+            if(file) {
                 const reader = new FileReader();
-                reader.onloadend = async function() {
-                    imgBase64 = reader.result;
-                    processSave(imgBase64);
+                reader.onloadend = () => { 
+                    base64 = reader.result;
+                    saveProcess(base64);
                 };
-                reader.readAsDataURL(fileInput.files[0]);
+                reader.readAsDataURL(file);
             } else {
-                processSave("");
+                saveProcess("");
             }
         }
 
-        async function processSave(imgData) {
+        async function saveProcess(img) {
             const id = document.getElementById('adm-id').value;
-            packageDatabase[id] = {
+            if(!id) return alert("Enter a tracking code");
+
+            db[id] = {
                 name: document.getElementById('adm-name').value,
                 from: document.getElementById('adm-from').value,
                 to: document.getElementById('adm-to').value,
-                depart: document.getElementById('adm-depart').value,
-                arrive: document.getElementById('adm-arrive').value,
+                takeoff: document.getElementById('adm-takeoff').value,
+                reach: document.getElementById('adm-reach').value,
                 status: document.getElementById('adm-status').value,
                 fee: document.getElementById('adm-fee').value,
-                image: imgData,
-                date: new Date().toLocaleDateString()
+                pic: img,
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
             };
 
-            const content = btoa(JSON.stringify(packageDatabase));
-            const body = {
-                message: "Update tracking data",
-                content: content,
-                sha: window.fileSha || ""
-            };
-
-            const res = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`, {
+            const response = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATA_FILE}`, {
                 method: "PUT",
-                headers: { Authorization: `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
-                body: JSON.stringify(body)
+                headers: { Authorization: `token ${TOKEN}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: "Update Tracking",
+                    content: btoa(JSON.stringify(db)),
+                    sha: currentSha
+                })
             });
 
-            if (res.ok) {
-                alert("Saved successfully to Cloud!");
+            if(response.ok) {
+                alert("Saved! Data is now live for client.");
                 location.reload();
             }
         }
 
-        // 4. Client Tracking Logic
-        async function trackPackage() {
-            const id = document.getElementById('track-input').value;
-            if (!id) return;
+        function startTracking() {
+            const code = document.getElementById('track-id').value;
+            if(!code) return;
 
-            document.getElementById('loading-overlay').classList.remove('hidden');
-            
-            // Artificial 3-second delay
+            document.getElementById('loader').classList.remove('hidden');
+
             setTimeout(async () => {
-                await loadDatabase();
-                const pkg = packageDatabase[id];
-                document.getElementById('loading-overlay').classList.add('hidden');
+                await fetchDB();
+                document.getElementById('loader').classList.add('hidden');
+                const p = db[code];
 
-                if (pkg) {
-                    document.getElementById('results-display').classList.remove('hidden');
-                    document.getElementById('res-status').innerText = pkg.status;
-                    document.getElementById('res-name').innerText = pkg.name;
-                    document.getElementById('res-id').innerText = id;
-                    document.getElementById('res-from').innerText = pkg.from;
-                    document.getElementById('res-to').innerText = pkg.to;
-                    
-                    if (pkg.image) {
-                        document.getElementById('res-img').src = pkg.image;
-                        document.getElementById('res-img').classList.remove('hidden');
+                if(p) {
+                    document.getElementById('shipment-result').classList.remove('hidden');
+                    document.getElementById('res-status').innerText = p.status;
+                    document.getElementById('res-name').innerText = p.name;
+                    document.getElementById('res-from').innerText = p.from;
+                    document.getElementById('res-to').innerText = p.to;
+                    document.getElementById('res-takeoff').innerText = p.takeoff;
+                    document.getElementById('res-reach').innerText = p.reach;
+
+                    if(p.pic) {
+                        document.getElementById('res-image').src = p.pic;
+                        document.getElementById('package-img-container').classList.remove('hidden');
                     }
 
-                    if (pkg.status === "Arrived" && pkg.fee) {
-                        document.getElementById('invoice-box').classList.remove('hidden');
-                        window.currentInvoice = pkg;
+                    if(p.status === "Arrived") {
+                        document.getElementById('fee-display').classList.remove('hidden');
+                        document.getElementById('res-fee').innerText = p.fee;
+                        document.getElementById('invoice-btn-area').classList.remove('hidden');
+                        window.activeInvoice = p;
+                        window.activeID = code;
                     }
                 } else {
-                    alert("Tracking code not found.");
+                    alert("Tracking code not found in our system.");
                 }
             }, 3000);
         }
 
-        // 5. Generate Invoice
         function downloadInvoice() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const pkg = window.currentInvoice;
+            const p = window.activeInvoice;
 
-            doc.setFontSize(22);
-            doc.setTextColor(77, 20, 140);
-            doc.text("Fedex Official Invoice", 20, 20);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Date: ${pkg.date}`, 20, 40);
-            doc.text(`Tracking ID: ${document.getElementById('track-input').value}`, 20, 50);
-            doc.text(`Customer: ${pkg.name}`, 20, 60);
-            doc.text(`Origin: ${pkg.from}`, 20, 70);
-            doc.text(`Destination: ${pkg.to}`, 20, 80);
-            
-            doc.setDrawColor(255, 98, 0);
-            doc.rect(20, 90, 170, 40);
-            doc.text("SERVICE CHARGE / CLEARANCE FEE", 25, 105);
-            doc.setFontSize(20);
-            doc.text(`TOTAL: $${pkg.fee}`, 25, 120);
-
-            // Stamp simulation
-            doc.setTextColor(200, 0, 0);
+            doc.setFillColor(77, 20, 140);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
             doc.setFontSize(30);
-            doc.text("OFFICIAL STAMP", 120, 160, { angle: 15 });
-            
-            doc.save(`Invoice_${pkg.name}.pdf`);
+            doc.text("Fedex", 20, 25);
+            doc.setFontSize(10);
+            doc.text("OFFICIAL FREIGHT INVOICE", 20, 32);
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.text(`DATE: ${p.date}`, 20, 60);
+            doc.text(`TRACKING NUMBER: ${window.activeID}`, 20, 70);
+            doc.text(`CONSIGNEE: ${p.name}`, 20, 80);
+
+            doc.setDrawColor(200);
+            doc.line(20, 90, 190, 90);
+
+            doc.text("DESCRIPTION", 20, 100);
+            doc.text("AMOUNT", 160, 100);
+            doc.text("International Clearance & Shipping Fees", 20, 115);
+            doc.text(`$${p.fee}.00`, 160, 115);
+
+            doc.setFontSize(16);
+            doc.text("TOTAL DUE:", 120, 140);
+            doc.text(`$${p.fee}.00`, 160, 140);
+
+            doc.setTextColor(200, 0, 0);
+            doc.setFontSize(40);
+            doc.text("PAID & RELEASED", 50, 200, { angle: 25 });
+            doc.save(`Fedex_Invoice_${window.activeID}.pdf`);
         }
 
-        window.onload = loadDatabase;
+        window.onload = fetchDB;
     </script>
 </body>
-</html>
+    </html>
+    
