@@ -42,8 +42,10 @@
                     <p><strong>Tracking Code:</strong> <span id="res-code" class="text-black"></span></p>
                     <p><strong>From:</strong> <span id="res-from" class="text-black"></span></p>
                     <p><strong>To:</strong> <span id="res-to" class="text-black"></span></p>
-                    <p><strong>Takeoff:</strong> <span id="res-take" class="text-blue-600"></span></p>
-                    <p><strong>Arrival:</strong> <span id="res-reach" class="text-green-600"></span></p>
+                    <div class="grid grid-cols-2">
+                        <p><strong>Takeoff:</strong> <br><span id="res-take" class="text-blue-600"></span></p>
+                        <p><strong>Arrival:</strong> <br><span id="res-reach" class="text-green-600"></span></p>
+                    </div>
                     <p><strong>Update Date:</strong> <span id="res-date" class="text-black"></span></p>
                     <div id="fee-box" class="p-4 bg-red-50 border border-red-200 rounded mt-4 hidden">
                         <p class="text-red-700 font-bold text-center italic text-lg">Clearance Fee Required: $<span id="res-fee"></span></p>
@@ -61,8 +63,7 @@
     <section id="admin-page" class="hidden max-w-lg mx-auto p-6 bg-white min-h-screen">
         <h2 class="text-xl font-bold border-b-2 border-fedex-orange pb-2 mb-6 uppercase">Shipment Manager</h2>
         <div class="space-y-4">
-            <div><label class="text-xs font-bold text-gray-500">TRACKING CODE (Give this to client)</label>
-            <input type="text" id="adm-id" placeholder="Ex: FDX123" class="w-full border p-3 rounded font-bold bg-yellow-50"></div>
+            <input type="text" id="adm-id" placeholder="New Tracking Code" class="w-full border p-3 rounded font-bold bg-yellow-50">
             <input type="text" id="adm-name" placeholder="Receiver Name" class="w-full border p-3 rounded">
             <input type="text" id="adm-from" placeholder="Origin City" class="w-full border p-3 rounded">
             <input type="text" id="adm-to" placeholder="Destination City" class="w-full border p-3 rounded">
@@ -77,13 +78,11 @@
                 <option value="Held at customs">Held at customs (customs fee required)</option>
                 <option value="Arrived">Arrived (Clearance fee required)</option>
             </select>
-            <input type="number" id="adm-fee" placeholder="Fee Amount (Numbers only)" class="w-full border p-3 rounded">
-            <div class="border-2 border-dashed p-4 rounded text-center">
-                <label class="block text-xs font-bold mb-2">UPLOAD PACKAGE IMAGE</label>
-                <input type="file" id="adm-pic" accept="image/*" class="text-xs w-full">
-            </div>
-            <button onclick="saveToCloud()" id="save-btn" class="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-lg mt-4 uppercase tracking-widest">SAVE TO CLOUD & GENERATE DATE</button>
-            <button onclick="location.reload()" class="w-full text-gray-400 text-xs mt-4 underline">Exit Admin</button>
+            <input type="number" id="adm-fee" placeholder="Fee Amount ($)" class="w-full border p-3 rounded">
+            <label class="block text-xs font-bold text-gray-400">UPLOAD PACKAGE IMAGE</label>
+            <input type="file" id="adm-pic" accept="image/*" class="text-xs w-full">
+            <button onclick="saveToCloud()" id="save-btn" class="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-lg mt-4">SAVE TO CLOUD</button>
+            <button onclick="location.reload()" class="w-full text-gray-400 text-xs mt-4">Exit Admin</button>
         </div>
     </section>
 
@@ -95,7 +94,7 @@
             F: "index.html"
         };
 
-        // LOGIN SYSTEM
+        // ADMIN LOGIN (3 TAPS ON LOGO)
         let taps = 0;
         document.getElementById('admin-gate').onclick = () => {
             taps++;
@@ -108,13 +107,16 @@
             }
         };
 
-        // TRACKING LOGIC
+        // TRACKING FUNCTION WITH THE 3s DELAY
         function startTracking() {
             const code = document.getElementById('track-input').value.trim();
-            if(!code || !window.db[code]) return alert("Tracking code not found. Please check and try again.");
+            if(!code || !window.db[code]) return alert("Tracking code not found.");
             
+            // SHOW LOADER
             document.getElementById('loader').classList.remove('hidden');
+            
             setTimeout(() => {
+                // HIDE LOADER AFTER 3 SECONDS
                 document.getElementById('loader').classList.add('hidden');
                 const data = window.db[code];
                 document.getElementById('results').classList.remove('hidden');
@@ -127,8 +129,10 @@
                 document.getElementById('res-reach').innerText = data.reach;
                 document.getElementById('res-date').innerText = data.date;
                 
-                if(data.img) { document.getElementById('res-img').src = data.img; document.getElementById('res-img').classList.remove('hidden'); }
-                else { document.getElementById('res-img').classList.add('hidden'); }
+                if(data.img) { 
+                    document.getElementById('res-img').src = data.img; 
+                    document.getElementById('res-img').classList.remove('hidden'); 
+                }
 
                 if(data.status === "Arrived") {
                     document.getElementById('fee-box').classList.remove('hidden');
@@ -142,27 +146,23 @@
             }, 3000);
         }
 
-        // SAVE DATA AND AUTO-UPDATE INDEX.HTML ON GITHUB
+        // AUTO-SAVE SYSTEM: REWRITES THE index.html FILE
         async function saveToCloud() {
-            const saveBtn = document.getElementById('save-btn');
+            const btn = document.getElementById('save-btn');
             const code = document.getElementById('adm-id').value.trim();
-            if(!code) return alert("Enter a Tracking Code");
+            if(!code) return alert("Missing Tracking Code");
             
-            saveBtn.innerText = "UPLOADING TO GITHUB...";
-            saveBtn.disabled = true;
+            btn.innerText = "SAVING..."; btn.disabled = true;
 
             const file = document.getElementById('adm-pic').files[0];
-            let base64Img = "";
-
+            let base64 = "";
             if(file) {
-                base64Img = await new Promise((resolve) => {
+                base64 = await new Promise((r) => {
                     const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
+                    reader.onloadend = () => r(reader.result);
                     reader.readAsDataURL(file);
                 });
-            } else if (window.db[code]) {
-                base64Img = window.db[code].img;
-            }
+            } else if (window.db[code]) { base64 = window.db[code].img; }
 
             window.db[code] = {
                 name: document.getElementById('adm-name').value,
@@ -172,68 +172,49 @@
                 reach: document.getElementById('adm-reach').value,
                 status: document.getElementById('adm-status').value,
                 fee: document.getElementById('adm-fee').value,
-                img: base64Img,
+                img: base64,
                 date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
             };
 
-            try {
-                const url = `https://api.github.com/repos/${GIT.U}/${GIT.R}/contents/${GIT.F}`;
-                const getFile = await fetch(url, { headers: { Authorization: `token ${GIT.T}` } });
-                const fileData = await getFile.json();
-                const content = atob(fileData.content);
+            const url = `https://api.github.com/repos/${GIT.U}/${GIT.R}/contents/${GIT.F}`;
+            const get = await fetch(url, { headers: { Authorization: `token ${GIT.T}` } });
+            const meta = await get.json();
+            const original = atob(meta.content);
 
-                const newDbString = `<script id="shipment-db">window.db = ${JSON.stringify(window.db)};<\/script>`;
-                const updatedHtml = content.replace(/<script id="shipment-db">.*?<\/script>/, newDbString);
+            const dbTag = `<script id="shipment-db">window.db = ${JSON.stringify(window.db)};<\/script>`;
+            const updated = original.replace(/<script id="shipment-db">.*?<\/script>/, dbTag);
 
-                const res = await fetch(url, {
-                    method: "PUT",
-                    headers: { Authorization: `token ${GIT.T}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: `Admin update: ${code}`,
-                        content: btoa(unescape(encodeURIComponent(updatedHtml))),
-                        sha: fileData.sha
-                    })
-                });
+            const res = await fetch(url, {
+                method: "PUT",
+                headers: { Authorization: `token ${GIT.T}` },
+                body: JSON.stringify({
+                    message: `Cloud Update: ${code}`,
+                    content: btoa(unescape(encodeURIComponent(updated))),
+                    sha: meta.sha
+                })
+            });
 
-                if(res.ok) {
-                    alert("SAVED! Date added and site updated for all devices.");
-                    location.reload();
-                } else {
-                    alert("Error saving. Check your token or internet.");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Critical Error. Check console.");
-            }
+            if(res.ok) { alert("SUCCESS: Site updated for all clients!"); location.reload(); }
+            else { alert("Error saving. Check token."); btn.innerText = "SAVE TO CLOUD"; btn.disabled = false; }
         }
 
         function getInvoice() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            // Header
             doc.setFillColor(77, 20, 140); doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.setFont("helvetica", "bold");
-            doc.text("Fedex Shipping Invoice", 20, 25);
-            // Body
+            doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.text("Fedex Shipping Invoice", 20, 25);
             doc.setTextColor(0, 0, 0); doc.setFontSize(10);
-            doc.text(`BILLING DATE: ${window.currentData.date}`, 20, 50);
-            doc.text(`TRACKING ID: ${window.currentCode}`, 20, 57);
-            doc.setDrawColor(200, 200, 200); doc.line(20, 65, 190, 65);
-            doc.setFontSize(12); doc.text("SHIPMENT DETAILS", 20, 75);
-            doc.setFontSize(10);
-            doc.text(`Receiver: ${window.currentData.name}`, 20, 85);
-            doc.text(`Origin: ${window.currentData.from}`, 20, 92);
-            doc.text(`Destination: ${window.currentData.to}`, 20, 99);
-            // Fee
-            doc.setFillColor(255, 240, 230); doc.rect(20, 110, 170, 20, 'F');
-            doc.setTextColor(255, 98, 0); doc.setFontSize(14); doc.text(`TOTAL CLEARANCE FEE DUE: $${window.currentData.fee}`, 30, 123);
-            // Official Stamp
-            doc.setDrawColor(255, 98, 0); doc.setLineWidth(1.5); doc.ellipse(150, 160, 30, 20);
-            doc.setTextColor(255, 98, 0); doc.setFontSize(10); doc.text("OFFICIAL STAMP", 133, 158);
-            doc.text("VERIFIED", 140, 164);
+            doc.text(`DATE: ${window.currentData.date}`, 20, 50);
+            doc.text(`TRACKING NO: ${window.currentCode}`, 20, 58);
+            doc.text(`RECEIVER: ${window.currentData.name}`, 20, 66);
+            doc.text(`FROM: ${window.currentData.from} -> TO: ${window.currentData.to}`, 20, 74);
+            doc.setFontSize(14); doc.text(`TOTAL DUE: $${window.currentData.fee}`, 20, 95);
+            doc.setDrawColor(255, 98, 0); doc.setLineWidth(1); doc.ellipse(150, 130, 30, 20);
+            doc.setTextColor(255, 98, 0); doc.setFontSize(10); doc.text("OFFICIAL STAMP", 132, 128);
+            doc.text("VERIFIED", 140, 134);
             doc.save(`Invoice_${window.currentCode}.pdf`);
         }
     </script>
 </body>
-                </html>
-    
+    </html>
+                                                                           
