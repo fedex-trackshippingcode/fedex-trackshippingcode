@@ -9,13 +9,13 @@
     <style>
         .fedex-purple { color: #4D148C; } .fedex-orange { color: #FF6200; }
         .bg-fedex-purple { background-color: #4D148C; }
-        #loader { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        #loader { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
         .hidden { display: none; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <script id="shipment-database">window.db = {};</script>
+    <script id="shipment-db">window.db = {};</script>
 
     <nav class="bg-white shadow p-4 flex justify-between items-center sticky top-0 z-50">
         <div id="admin-gate" class="cursor-pointer select-none">
@@ -23,7 +23,7 @@
         </div>
     </nav>
 
-    <section id="client-page" class="max-w-md mx-auto p-6">
+    <section id="client-page" class="max-w-md mx-auto p-4">
         <div class="bg-white p-6 rounded-xl shadow-md mt-4">
             <h2 class="text-lg font-bold mb-4 text-gray-700">Track shipment</h2>
             <input type="text" id="track-input" placeholder="Enter Tracking Code" class="w-full border p-3 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-purple-500">
@@ -37,16 +37,16 @@
                     <button id="inv-btn" onclick="getInvoice()" class="hidden bg-green-600 text-white text-xs px-3 py-2 rounded font-bold">DOWNLOAD INVOICE</button>
                 </div>
                 <img id="res-img" class="w-full rounded shadow mb-4 hidden">
-                <div class="space-y-2 text-sm text-gray-600 border-t pt-4">
+                <div class="space-y-3 text-sm text-gray-600 border-t pt-4">
                     <p><strong>Receiver:</strong> <span id="res-name" class="text-black"></span></p>
                     <p><strong>Tracking Code:</strong> <span id="res-code" class="text-black"></span></p>
                     <p><strong>From:</strong> <span id="res-from" class="text-black"></span></p>
                     <p><strong>To:</strong> <span id="res-to" class="text-black"></span></p>
                     <p><strong>Takeoff:</strong> <span id="res-take" class="text-blue-600"></span></p>
                     <p><strong>Arrival:</strong> <span id="res-reach" class="text-green-600"></span></p>
-                    <p><strong>Date:</strong> <span id="res-date" class="text-black"></span></p>
-                    <div id="fee-box" class="p-3 bg-red-50 border border-red-200 rounded mt-4 hidden">
-                        <p class="text-red-700 font-bold text-center italic">Required Fee: $<span id="res-fee"></span></p>
+                    <p><strong>Update Date:</strong> <span id="res-date" class="text-black"></span></p>
+                    <div id="fee-box" class="p-4 bg-red-50 border border-red-200 rounded mt-4 hidden">
+                        <p class="text-red-700 font-bold text-center italic text-lg">Clearance Fee Required: $<span id="res-fee"></span></p>
                     </div>
                 </div>
             </div>
@@ -54,14 +54,15 @@
     </section>
 
     <div id="loader" class="hidden">
-        <div class="animate-spin rounded-full h-10 w-10 border-t-4 border-fedex-purple"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-fedex-purple"></div>
         <p class="mt-4 font-bold fedex-purple italic">tracking...</p>
     </div>
 
     <section id="admin-page" class="hidden max-w-lg mx-auto p-6 bg-white min-h-screen">
-        <h2 class="text-xl font-bold border-b-2 border-fedex-orange pb-2 mb-6 uppercase">Admin Panel</h2>
+        <h2 class="text-xl font-bold border-b-2 border-fedex-orange pb-2 mb-6 uppercase">Shipment Manager</h2>
         <div class="space-y-4">
-            <input type="text" id="adm-id" placeholder="New Tracking Code" class="w-full border p-3 rounded bg-gray-50 font-bold">
+            <div><label class="text-xs font-bold text-gray-500">TRACKING CODE (Give this to client)</label>
+            <input type="text" id="adm-id" placeholder="Ex: FDX123" class="w-full border p-3 rounded font-bold bg-yellow-50"></div>
             <input type="text" id="adm-name" placeholder="Receiver Name" class="w-full border p-3 rounded">
             <input type="text" id="adm-from" placeholder="Origin City" class="w-full border p-3 rounded">
             <input type="text" id="adm-to" placeholder="Destination City" class="w-full border p-3 rounded">
@@ -69,128 +70,170 @@
                 <input type="text" id="adm-take" placeholder="Takeoff Time" class="border p-3 rounded">
                 <input type="text" id="adm-reach" placeholder="Reach Time" class="border p-3 rounded">
             </div>
-            <select id="adm-status" class="w-full border p-3 rounded">
+            <select id="adm-status" class="w-full border p-3 rounded bg-blue-50">
                 <option value="Loading">Loading</option>
                 <option value="In transit (moving)">In transit (moving)</option>
                 <option value="Hold">Hold</option>
-                <option value="Held at customs">Held at customs (fee required)</option>
+                <option value="Held at customs">Held at customs (customs fee required)</option>
                 <option value="Arrived">Arrived (Clearance fee required)</option>
             </select>
-            <input type="number" id="adm-fee" placeholder="Fee Amount ($)" class="w-full border p-3 rounded">
-            <label class="text-xs text-gray-500">Upload Package Picture:</label>
-            <input type="file" id="adm-pic" accept="image/*" class="w-full text-xs">
-            <button onclick="saveToCloud()" class="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-lg mt-4">SAVE TO CLOUD</button>
+            <input type="number" id="adm-fee" placeholder="Fee Amount (Numbers only)" class="w-full border p-3 rounded">
+            <div class="border-2 border-dashed p-4 rounded text-center">
+                <label class="block text-xs font-bold mb-2">UPLOAD PACKAGE IMAGE</label>
+                <input type="file" id="adm-pic" accept="image/*" class="text-xs w-full">
+            </div>
+            <button onclick="saveToCloud()" id="save-btn" class="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-lg mt-4 uppercase tracking-widest">SAVE TO CLOUD & GENERATE DATE</button>
+            <button onclick="location.reload()" class="w-full text-gray-400 text-xs mt-4 underline">Exit Admin</button>
         </div>
     </section>
 
     <script>
-        const CONFIG = {
-            TOKEN: "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",
-            OWNER: "fedex-trackshippingcode",
-            REPO: "fedextrackshippingcode",
-            FILE: "index.html"
+        const GIT = {
+            T: "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",
+            U: "fedex-trackshippingcode",
+            R: "fedextrackshippingcode",
+            F: "index.html"
         };
 
-        // ADMIN LOGIN (3 TAPS ON LOGO)
-        let t = 0;
+        // LOGIN SYSTEM
+        let taps = 0;
         document.getElementById('admin-gate').onclick = () => {
-            t++; if(t === 3) {
-                if(prompt("Admin Password") === "0000" && prompt("Enter Token") === CONFIG.TOKEN) {
+            taps++;
+            if(taps === 3) {
+                if(prompt("Admin Password") === "0000" && prompt("Enter Token") === GIT.T) {
                     document.getElementById('client-page').classList.add('hidden');
                     document.getElementById('admin-page').classList.remove('hidden');
-                } t = 0;
+                }
+                taps = 0;
             }
         };
 
-        // START TRACKING WITH 3S DELAY
+        // TRACKING LOGIC
         function startTracking() {
-            const code = document.getElementById('track-input').value;
-            if(!code || !window.db[code]) return alert("Invalid Tracking Code");
+            const code = document.getElementById('track-input').value.trim();
+            if(!code || !window.db[code]) return alert("Tracking code not found. Please check and try again.");
             
             document.getElementById('loader').classList.remove('hidden');
             setTimeout(() => {
                 document.getElementById('loader').classList.add('hidden');
-                const p = window.db[code];
+                const data = window.db[code];
                 document.getElementById('results').classList.remove('hidden');
-                document.getElementById('res-status').innerText = p.status;
-                document.getElementById('res-name').innerText = p.name;
+                document.getElementById('res-status').innerText = data.status;
+                document.getElementById('res-name').innerText = data.name;
                 document.getElementById('res-code').innerText = code;
-                document.getElementById('res-from').innerText = p.from;
-                document.getElementById('res-to').innerText = p.to;
-                document.getElementById('res-take').innerText = p.take;
-                document.getElementById('res-reach').innerText = p.reach;
-                document.getElementById('res-date').innerText = p.date;
+                document.getElementById('res-from').innerText = data.from;
+                document.getElementById('res-to').innerText = data.to;
+                document.getElementById('res-take').innerText = data.take;
+                document.getElementById('res-reach').innerText = data.reach;
+                document.getElementById('res-date').innerText = data.date;
                 
-                if(p.img) { document.getElementById('res-img').src = p.img; document.getElementById('res-img').classList.remove('hidden'); }
-                if(p.status === "Arrived") {
+                if(data.img) { document.getElementById('res-img').src = data.img; document.getElementById('res-img').classList.remove('hidden'); }
+                else { document.getElementById('res-img').classList.add('hidden'); }
+
+                if(data.status === "Arrived") {
                     document.getElementById('fee-box').classList.remove('hidden');
-                    document.getElementById('res-fee').innerText = p.fee;
+                    document.getElementById('res-fee').innerText = data.fee;
                     document.getElementById('inv-btn').classList.remove('hidden');
-                    window.currentData = p; window.currentCode = code;
+                    window.currentData = data; window.currentCode = code;
+                } else {
+                    document.getElementById('fee-box').classList.add('hidden');
+                    document.getElementById('inv-btn').classList.add('hidden');
                 }
             }, 3000);
         }
 
-        // SAVE AND REWRITE THE HTML FILE DIRECTLY
+        // SAVE DATA AND AUTO-UPDATE INDEX.HTML ON GITHUB
         async function saveToCloud() {
-            const f = document.getElementById('adm-pic').files[0];
-            const reader = new FileReader();
+            const saveBtn = document.getElementById('save-btn');
+            const code = document.getElementById('adm-id').value.trim();
+            if(!code) return alert("Enter a Tracking Code");
             
-            reader.onloadend = async () => {
-                const id = document.getElementById('adm-id').value;
-                if(!id) return alert("Need Tracking Code");
-                
-                window.db[id] = {
-                    name: document.getElementById('adm-name').value,
-                    from: document.getElementById('adm-from').value,
-                    to: document.getElementById('adm-to').value,
-                    take: document.getElementById('adm-take').value,
-                    reach: document.getElementById('adm-reach').value,
-                    status: document.getElementById('adm-status').value,
-                    fee: document.getElementById('adm-fee').value,
-                    img: f ? reader.result : (window.db[id] ? window.db[id].img : ""),
-                    date: new Date().toLocaleDateString()
-                };
+            saveBtn.innerText = "UPLOADING TO GITHUB...";
+            saveBtn.disabled = true;
 
-                const getFile = await fetch(`https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/${CONFIG.FILE}`, {
-                    headers: { Authorization: `token ${CONFIG.TOKEN}` }
+            const file = document.getElementById('adm-pic').files[0];
+            let base64Img = "";
+
+            if(file) {
+                base64Img = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
                 });
+            } else if (window.db[code]) {
+                base64Img = window.db[code].img;
+            }
+
+            window.db[code] = {
+                name: document.getElementById('adm-name').value,
+                from: document.getElementById('adm-from').value,
+                to: document.getElementById('adm-to').value,
+                take: document.getElementById('adm-take').value,
+                reach: document.getElementById('adm-reach').value,
+                status: document.getElementById('adm-status').value,
+                fee: document.getElementById('adm-fee').value,
+                img: base64Img,
+                date: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+            };
+
+            try {
+                const url = `https://api.github.com/repos/${GIT.U}/${GIT.R}/contents/${GIT.F}`;
+                const getFile = await fetch(url, { headers: { Authorization: `token ${GIT.T}` } });
                 const fileData = await getFile.json();
-                let content = atob(fileData.content);
+                const content = atob(fileData.content);
 
-                const newDbTag = `<script id="shipment-database">window.db = ${JSON.stringify(window.db)};<\/script>`;
-                const updatedContent = content.replace(/<script id="shipment-database">.*?<\/script>/, newDbTag);
+                const newDbString = `<script id="shipment-db">window.db = ${JSON.stringify(window.db)};<\/script>`;
+                const updatedHtml = content.replace(/<script id="shipment-db">.*?<\/script>/, newDbString);
 
-                const res = await fetch(`https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/${CONFIG.FILE}`, {
+                const res = await fetch(url, {
                     method: "PUT",
-                    headers: { Authorization: `token ${CONFIG.TOKEN}` },
+                    headers: { Authorization: `token ${GIT.T}`, "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        message: `Update ${id}`,
-                        content: btoa(updatedContent),
+                        message: `Admin update: ${code}`,
+                        content: btoa(unescape(encodeURIComponent(updatedHtml))),
                         sha: fileData.sha
                     })
                 });
 
-                if(res.ok) { alert("SUCCESS: Saved to Cloud!"); location.reload(); }
-            };
-            if(f) reader.readAsDataURL(f); else reader.onloadend();
+                if(res.ok) {
+                    alert("SAVED! Date added and site updated for all devices.");
+                    location.reload();
+                } else {
+                    alert("Error saving. Check your token or internet.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Critical Error. Check console.");
+            }
         }
 
         function getInvoice() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            // Header
             doc.setFillColor(77, 20, 140); doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255); doc.setFontSize(26); doc.text("Fedex Official Invoice", 20, 25);
-            doc.setTextColor(0, 0, 0); doc.setFontSize(12);
-            doc.text(`Date: ${window.currentData.date}`, 20, 50);
-            doc.text(`Tracking: ${window.currentCode}`, 20, 60);
-            doc.text(`Receiver: ${window.currentData.name}`, 20, 70);
-            doc.text(`Route: ${window.currentData.from} to ${window.currentData.to}`, 20, 80);
-            doc.setFontSize(16); doc.text(`TOTAL DUE: $${window.currentData.fee}`, 20, 100);
-            doc.setDrawColor(255, 98, 0); doc.setLineWidth(1); doc.ellipse(150, 130, 30, 20);
-            doc.setTextColor(255, 98, 0); doc.setFontSize(10); doc.text("OFFICIALLY STAMPED", 132, 130);
+            doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.setFont("helvetica", "bold");
+            doc.text("Fedex Shipping Invoice", 20, 25);
+            // Body
+            doc.setTextColor(0, 0, 0); doc.setFontSize(10);
+            doc.text(`BILLING DATE: ${window.currentData.date}`, 20, 50);
+            doc.text(`TRACKING ID: ${window.currentCode}`, 20, 57);
+            doc.setDrawColor(200, 200, 200); doc.line(20, 65, 190, 65);
+            doc.setFontSize(12); doc.text("SHIPMENT DETAILS", 20, 75);
+            doc.setFontSize(10);
+            doc.text(`Receiver: ${window.currentData.name}`, 20, 85);
+            doc.text(`Origin: ${window.currentData.from}`, 20, 92);
+            doc.text(`Destination: ${window.currentData.to}`, 20, 99);
+            // Fee
+            doc.setFillColor(255, 240, 230); doc.rect(20, 110, 170, 20, 'F');
+            doc.setTextColor(255, 98, 0); doc.setFontSize(14); doc.text(`TOTAL CLEARANCE FEE DUE: $${window.currentData.fee}`, 30, 123);
+            // Official Stamp
+            doc.setDrawColor(255, 98, 0); doc.setLineWidth(1.5); doc.ellipse(150, 160, 30, 20);
+            doc.setTextColor(255, 98, 0); doc.setFontSize(10); doc.text("OFFICIAL STAMP", 133, 158);
+            doc.text("VERIFIED", 140, 164);
             doc.save(`Invoice_${window.currentCode}.pdf`);
         }
     </script>
 </body>
-</html>
+                </html>
+    
